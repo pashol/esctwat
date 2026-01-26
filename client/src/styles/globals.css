@@ -320,6 +320,185 @@ body {
   background-color: rgba(37, 99, 235, 0.12);
 }
 
+.tweet-media-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tweet-media-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+}
+
+.tweet-media-modal__content {
+  position: relative;
+  z-index: 1001;
+  max-width: min(90vw, 1000px);
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.tweet-media-modal__content img,
+.tweet-media-modal__content video {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 1rem;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.35);
+}
+
+.tweet-media-modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  color: #f8fafc;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  font-size: 1.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.tweet-media-modal__close:hover {
+  background: rgba(37, 99, 235, 0.8);
+}
+
+.tweet-media-modal__close:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .tweet-media-modal__close {
+  background: rgba(15, 23, 42, 0.75);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .tweet-media-modal__close:hover {
+  background: rgba(37, 99, 235, 0.75);
+}
+
+.tweet-media-modal__content:focus {
+  outline: none;
+}
+
+
+.tweet-confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tweet-confirm-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.tweet-confirm-modal__content {
+  position: relative;
+  z-index: 1101;
+  background: var(--surface);
+  color: var(--text-primary);
+  border-radius: 1rem;
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-hover);
+  padding: 1.75rem;
+  width: min(90vw, 360px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tweet-confirm-modal__content h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tweet-confirm-modal__content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.tweet-confirm-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.confirm-button {
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.confirm-button.cancel {
+  background: var(--surface-elevated);
+  color: var(--text-muted);
+}
+
+.confirm-button.cancel:hover {
+  color: var(--text-primary);
+}
+
+.confirm-button.confirm {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
+}
+
+.confirm-button.confirm:hover {
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.3);
+}
+
+.confirm-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.tweet-body .hashtag-link {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(37, 99, 235, 0.2);
+}
+
+.tweet-body .hashtag-link:hover,
+.tweet-body .hashtag-link:focus {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+.tweet-body .hashtag-link:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 2px;
+}
+
 .tweet-actions button {
   color: var(--text-muted);
 }

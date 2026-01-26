@@ -24,13 +24,13 @@ const StreamSettings = ({
   const [selectedLanguages, setSelectedLanguages] = useState(settings.languages || []);
   const [includeRetweets, setIncludeRetweets] = useState(settings.includeRetweets || false);
   const [testMode, setTestMode] = useState(settings.testMode || false);
-  const [pollingInterval, setPollingInterval] = useState(settings.pollingInterval || 10);
+  const [pollingInterval, setPollingInterval] = useState(settings.pollingInterval || 30);
 
   useEffect(() => {
     setSelectedLanguages(settings.languages || []);
     setIncludeRetweets(Boolean(settings.includeRetweets));
     setTestMode(Boolean(settings.testMode));
-    setPollingInterval(settings.pollingInterval || 10);
+    setPollingInterval(settings.pollingInterval || 30);
   }, [settings]);
 
   const toggleLanguage = (lang) => {
@@ -102,11 +102,10 @@ const StreamSettings = ({
               onChange={(e) => setPollingInterval(Number(e.target.value))}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value={5}>5 seconds</option>
-              <option value={10}>10 seconds</option>
               <option value={15}>15 seconds</option>
               <option value={30}>30 seconds</option>
               <option value={60}>1 minute</option>
+              <option value={120}>2 minutes</option>
             </select>
           </div>
           <p className="text-xs text-muted">

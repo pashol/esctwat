@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 
-const Tweet = ({ tweet }) => {
+const Tweet = ({ tweet, onAddHashtag }) => {
   const [expanded, setExpanded] = useState(false);
-
-  // Debug log
-  console.log('[Tweet Component] Rendering tweet:', tweet);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(null);
+  const [pendingHashtag, setPendingHashtag] = useState(null);
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+  const [isAddingHashtag, setIsAddingHashtag] = useState(false);
 
   // Safety checks
   if (!tweet || !tweet.author) {
@@ -28,19 +29,100 @@ const Tweet = ({ tweet }) => {
     return date.toLocaleDateString();
   };
 
-  const formatText = (text) => {
-    let formattedText = text;
-    formattedText = formattedText.replace(
-      /(https?:\/\/[^\s]+)/g,
-      '<a href="$1" target="_blank" rel="noopener noreferrer" class="highlight">$1</a>'
-    );
-    formattedText = formattedText.replace(/#(\w+)/g, '<span class="highlight">#$1</span>');
-    formattedText = formattedText.replace(/@(\w+)/g, '<span class="highlight">@$1</span>');
-    return formattedText;
+  const renderText = (text) => {
+    const regex = /(https?:\/\/[^\s]+)|(#\w+)|(@\w+)/g;
+    const nodes = [];
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        const segment = text.slice(lastIndex, match.index);
+        nodes.push(
+          <span key={`text-${key++}`}>{segment}</span>
+        );
+      }
+
+      const token = match[0];
+
+      if (token.startsWith('http')) {
+        nodes.push(
+          <a
+            key={`link-${key++}`}
+            href={token}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="highlight"
+          >
+            {token}
+          </a>
+        );
+      } else if (token.startsWith('#')) {
+        if (onAddHashtag) {
+          nodes.push(
+            <button
+              key={`hash-${key++}`}
+              type="button"
+              className="hashtag-link highlight"
+              onClick={() => handleHashtagClick(token)}
+            >
+              {token}
+            </button>
+          );
+        } else {
+          nodes.push(
+            <span key={`hash-${key++}`} className="highlight">{token}</span>
+          );
+        }
+      } else if (token.startsWith('@')) {
+        nodes.push(
+          <span key={`mention-${key++}`} className="highlight">{token}</span>
+        );
+      }
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      nodes.push(
+        <span key={`text-${key++}`}>{text.slice(lastIndex)}</span>
+      );
+    }
+
+    return nodes;
+  };
+
+  const handleHashtagClick = (token) => {
+    const normalized = token.startsWith('#') ? token : `#${token}`;
+    setPendingHashtag(normalized);
+    setIsConfirmVisible(true);
+  };
+
+  const closeHashtagDialog = () => {
+    setIsConfirmVisible(false);
+    setPendingHashtag(null);
+    setIsAddingHashtag(false);
+  };
+
+  const confirmAddHashtag = async () => {
+    if (!pendingHashtag || !onAddHashtag) {
+      closeHashtagDialog();
+      return;
+    }
+
+    setIsAddingHashtag(true);
+    try {
+      await onAddHashtag(pendingHashtag, { keepFeed: true });
+    } finally {
+      closeHashtagDialog();
+    }
   };
 
   const isLongText = tweet.text && tweet.text.length > 280;
   const metrics = tweet.publicMetrics || { reply_count: 0, retweet_count: 0, like_count: 0 };
+  const displayedText = isLongText && !expanded ? tweet.text.substring(0, 280) : tweet.text;
+  const shouldShowEllipsis = isLongText && !expanded;
 
   return (
     <article className="tweet-card tweet-enter">
@@ -71,52 +153,70 @@ const Tweet = ({ tweet }) => {
               <span className="tweet-lang">{tweet.lang?.toUpperCase() || '—'}</span>
             </div>
 
-            <div className="tweet-body whitespace-pre-wrap">
-              {isLongText && !expanded ? (
-                <div>
-                  <span
-                    dangerouslySetInnerHTML={{ __html: formatText(`${tweet.text.substring(0, 280)}…`) }}
-                  />
-                  <button
-                    onClick={() => setExpanded(true)}
-                    className="ml-1 text-xs uppercase tracking-wide accent font-semibold"
-                  >
-                    Show more
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <span dangerouslySetInnerHTML={{ __html: formatText(tweet.text) }} />
-                  {isLongText && expanded && (
-                    <button
-                      onClick={() => setExpanded(false)}
-                      className="ml-1 text-xs uppercase tracking-wide accent font-semibold"
-                    >
-                      Show less
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+             <div className="tweet-body whitespace-pre-wrap">
+               <div>
+                 {renderText(displayedText)}
+                 {shouldShowEllipsis && <span>…</span>}
+               </div>
+               {isLongText && (
+                 <button
+                   onClick={() => setExpanded(prev => !prev)}
+                   className="ml-1 text-xs uppercase tracking-wide accent font-semibold"
+                 >
+                   {expanded ? 'Show less' : 'Show more'}
+                 </button>
+               )}
+             </div>
 
-            {tweet.entities?.media?.length > 0 && (
+            {tweet.media?.length > 0 && (
               <div className="grid grid-cols-2 gap-3">
-                {tweet.entities.media.map((media, index) => (
-                  <div key={index} className="rounded-xl overflow-hidden bg-black/5">
-                    <img src={media.media_url_https} alt="Tweet media" className="w-full h-auto" />
-                  </div>
-                ))}
+                {tweet.media.map((media, index) => {
+                  if (media.type === 'photo' && media.url) {
+                    return (
+                      <button
+                        key={media.mediaKey || index}
+                        type="button"
+                        className="rounded-xl overflow-hidden bg-black/5 focus:outline-none"
+                        onClick={() => setActiveMediaIndex(index)}
+                      >
+                        <img src={media.url} alt={media.altText || 'Tweet media'} className="w-full h-auto" loading="lazy" />
+                      </button>
+                    );
+                  }
+
+                  if ((media.type === 'video' || media.type === 'animated_gif') && media.variants?.length) {
+                    const videoVariant = media.variants.find(variant => variant.content_type === 'video/mp4' && variant.url);
+                    if (!videoVariant) {
+                      return null;
+                    }
+                    return (
+                      <div key={media.mediaKey || index} className="rounded-xl overflow-hidden bg-black/5">
+                        <video controls muted playsInline className="w-full h-auto" poster={media.previewImageUrl || undefined}>
+                          <source src={videoVariant.url} type={videoVariant.content_type} />
+                        </video>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })}
               </div>
             )}
 
             <div className="tweet-actions flex items-center justify-between pt-2 text-xs">
               <div className="flex items-center gap-6">
-                <button className="icon-button flex items-center gap-1">
+                <a
+                  href={tweet.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="icon-button flex items-center gap-1"
+                  aria-label="Open original tweet"
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                   {metrics.reply_count > 0 && <span>{metrics.reply_count}</span>}
-                </button>
+                </a>
                 <button className="icon-button flex items-center gap-1">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -139,6 +239,44 @@ const Tweet = ({ tweet }) => {
           </div>
         </div>
       </div>
+      {activeMediaIndex !== null && tweet.media?.[activeMediaIndex] && (
+        <div className="tweet-media-modal" role="dialog" aria-modal="true">
+          <div className="tweet-media-modal__backdrop" onClick={() => setActiveMediaIndex(null)} />
+          <div className="tweet-media-modal__content">
+            <button
+              type="button"
+              className="tweet-media-modal__close"
+              onClick={() => setActiveMediaIndex(null)}
+              aria-label="Close media viewer"
+            >
+              ×
+            </button>
+            {tweet.media[activeMediaIndex].type === 'photo' && tweet.media[activeMediaIndex].url ? (
+              <img
+                src={tweet.media[activeMediaIndex].url}
+                alt={tweet.media[activeMediaIndex].altText || 'Tweet media'}
+              />
+            ) : null}
+          </div>
+        </div>
+      )}
+      {isConfirmVisible && (
+        <div className="tweet-confirm-modal" role="dialog" aria-modal="true">
+          <div className="tweet-confirm-modal__backdrop" onClick={closeHashtagDialog} />
+          <div className="tweet-confirm-modal__content">
+            <h3>Add Hashtag</h3>
+            <p>Do you want to add {pendingHashtag} to the monitored hashtags?</p>
+            <div className="tweet-confirm-modal__actions">
+              <button type="button" className="confirm-button cancel" onClick={closeHashtagDialog} disabled={isAddingHashtag}>
+                Cancel
+              </button>
+              <button type="button" className="confirm-button confirm" onClick={confirmAddHashtag} disabled={isAddingHashtag}>
+                {isAddingHashtag ? 'Adding…' : 'Add hashtag'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 };

@@ -1,4 +1,5 @@
 const { TwitterApi } = require('twitter-api-v2');
+const logger = require('../logger');
 
 class TwitterClient {
   constructor() {
@@ -18,7 +19,7 @@ class TwitterClient {
     }
 
     this.client = new TwitterApi(bearerToken.trim());
-    console.log('Twitter API client initialized');
+    logger.debug('Twitter API client initialized');
     return true;
   }
 
@@ -29,17 +30,17 @@ class TwitterClient {
 
     try {
       // Since filtered stream requires OAuth 1.0a, we'll use search polling instead
-      console.log('Starting search polling for hashtags:', hashtags);
+       logger.info('Starting search polling for hashtags:', hashtags);
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
       // Start polling instead of streaming
       await this.startPolling(hashtags, onTweet, onError, options);
-      console.log('Search polling started successfully');
+       logger.info('Search polling started successfully');
       return true;
 
     } catch (error) {
-      console.error('Failed to start Twitter search:', error);
+       logger.error('Failed to start Twitter search:', error);
       onError(error);
       return false;
     }
@@ -53,9 +54,9 @@ class TwitterClient {
     const { languages = [], includeRetweets = false, testMode = false } = options;
 
     const poll = async () => {
-      console.log(`[Poll] Starting poll cycle. isConnected: ${this.isConnected}, lastSeenId: ${lastSeenId}`);
+       logger.debug(`[Poll] Starting poll cycle. isConnected: ${this.isConnected}, lastSeenId: ${lastSeenId}`);
       if (!this.isConnected) {
-        console.log('[Poll] Skipping poll - not connected');
+        logger.debug('[Poll] Skipping poll - not connected');
         return;
       }
 
@@ -76,9 +77,10 @@ class TwitterClient {
         const query = parts.join(' ');
 
         const searchParams = {
-          'tweet.fields': ['author_id', 'created_at', 'public_metrics', 'lang', 'entities'],
+          'tweet.fields': ['author_id', 'created_at', 'public_metrics', 'lang', 'entities', 'attachments'],
           'user.fields': ['username', 'name', 'profile_image_url'],
-          'expansions': ['author_id'],
+          'media.fields': ['media_key', 'type', 'url', 'preview_image_url', 'duration_ms', 'width', 'height', 'alt_text', 'variants'],
+          'expansions': ['author_id', 'attachments.media_keys'],
           'max_results': 50,
           'sort_order': 'recency'
         };
@@ -91,7 +93,7 @@ class TwitterClient {
 
         const tweets = response.data?.data || [];
         const includes = response.data?.includes || {};
-        console.log(`[Poll] Received ${tweets.length} tweets`);
+        logger.debug(`[Poll] Received ${tweets.length} tweets`);
 
         if (tweets.length) {
           const orderedTweets = [...tweets].reverse();
@@ -111,14 +113,14 @@ class TwitterClient {
         }
 
         if (this.isConnected) {
-          console.log(`[Poll] Scheduling next poll in ${pollInterval}ms`);
+          logger.debug(`[Poll] Scheduling next poll in ${pollInterval}ms`);
           this.pollTimeout = setTimeout(poll, pollInterval);
         } else {
-          console.log('[Poll] Not scheduling next poll - disconnected');
+          logger.debug('[Poll] Not scheduling next poll - disconnected');
         }
 
       } catch (error) {
-        console.error('Search polling error:', error);
+        logger.error('Search polling error:', error);
         const statusCode = error.code || error.status;
 
         if (statusCode === 401 || statusCode === 403) {
@@ -129,7 +131,7 @@ class TwitterClient {
 
         if (statusCode === 429) {
           const retryAfter = Number(error.rateLimit?.resetIn) || 60;
-          console.warn(`Rate limited. Retrying in ${retryAfter} seconds.`);
+          logger.warn(`Rate limited. Retrying in ${retryAfter} seconds.`);
           if (this.isConnected) {
             this.pollTimeout = setTimeout(poll, retryAfter * 1000);
           }
@@ -150,18 +152,18 @@ class TwitterClient {
 
   async testBearerToken() {
     try {
-      console.log('Testing Bearer Token...');
+      logger.debug('Testing Bearer Token...');
       this.initialize();
       const response = await this.client.v2.me();
-      console.log('Bearer Token is valid. User:', response.data.username);
+      logger.info('Bearer Token is valid. User:', response.data.username);
       return true;
     } catch (error) {
-      console.error('Bearer Token test failed:', error.message);
+      logger.error('Bearer Token test failed:', error.message);
       if (error.code === 401) {
         throw new Error('Invalid or expired Bearer Token. Please check your TWITTER_BEARER_TOKEN in .env file');
       }
       if (error.code === 403) {
-        console.warn('Bearer Token has limited permissions. Using search polling instead of streaming.');
+        logger.warn('Bearer Token has limited permissions. Using search polling instead of streaming.');
         return true;
       }
       throw error;
@@ -170,30 +172,30 @@ class TwitterClient {
 
   async clearStreamRules() {
     // Not needed for polling
-    console.log('Clear rules not needed for polling approach');
+    logger.debug('Clear rules not needed for polling approach');
   }
 
   async addStreamRules(hashtags) {
     // Not needed for polling
-    console.log('Stream rules not needed for polling. Hashtags:', hashtags);
+    logger.debug('Stream rules not needed for polling. Hashtags:', hashtags);
   }
 
   async handleReconnection(hashtags, onTweet, onError) {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
+      logger.error('Max reconnection attempts reached');
       return;
     }
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
     
-    console.log(`Attempting to reconnect in ${delay / 1000} seconds (attempt ${this.reconnectAttempts})`);
+    logger.warn(`Attempting to reconnect in ${delay / 1000} seconds (attempt ${this.reconnectAttempts})`);
     
     setTimeout(async () => {
       try {
         await this.startStreaming(hashtags, onTweet, onError);
       } catch (error) {
-        console.error('Reconnection failed:', error);
+        logger.error('Reconnection failed:', error);
         this.handleReconnection(hashtags, onTweet, onError);
       }
     }, delay);
@@ -205,7 +207,7 @@ class TwitterClient {
       clearTimeout(this.pollTimeout);
       this.pollTimeout = null;
     }
-    console.log('Twitter search polling stopped');
+    logger.info('Twitter search polling stopped');
   }
 
   async fetchRecentTweets(hashtags, count = 20, options = {}) {
@@ -231,20 +233,21 @@ class TwitterClient {
 
       const query = parts.join(' ');
 
-      const searchParams = {
-        'tweet.fields': ['author_id', 'created_at', 'public_metrics', 'lang', 'entities'],
-        'user.fields': ['username', 'name', 'profile_image_url'],
-        'expansions': ['author_id'],
-        'max_results': Math.min(count, 100), // Twitter API limit is 100
-        'sort_order': 'relevance'
-      };
+       const searchParams = {
+         'tweet.fields': ['author_id', 'created_at', 'public_metrics', 'lang', 'entities', 'attachments'],
+         'user.fields': ['username', 'name', 'profile_image_url'],
+         'media.fields': ['media_key', 'type', 'url', 'preview_image_url', 'duration_ms', 'width', 'height', 'alt_text', 'variants'],
+         'expansions': ['author_id', 'attachments.media_keys'],
+         'max_results': Math.min(count, 100), // Twitter API limit is 100
+         'sort_order': 'recency'
+       };
 
       const response = await this.client.v2.search(query, searchParams);
-      
+
       const tweets = response.data?.data || [];
       const includes = response.data?.includes || {};
 
-      console.log(`[Backfill] Fetched ${tweets.length} recent tweets`);
+      logger.debug(`[Backfill] Fetched ${tweets.length} recent tweets`);
 
       // Format tweets the same way as in polling
       return tweets.map(tweet => ({
@@ -253,7 +256,7 @@ class TwitterClient {
       }));
 
     } catch (error) {
-      console.error('Error fetching recent tweets:', error);
+      logger.error('Error fetching recent tweets:', error);
       throw error;
     }
   }

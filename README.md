@@ -12,6 +12,7 @@ A real-time web application that monitors X.com (Twitter) for Eurovision-related
 🎤 **Real-time Streaming** - Live updates from X.com using Server-Sent Events  
 🇬🇧🇩🇪 **Language Filtering** - Shows English and German tweets only  
 🏷️ **Dynamic Hashtags** - Add/remove hashtags on the fly  
+✨ **Smart Feed Preservation** - Click hashtags in tweets to add them without clearing your feed  
 🎨 **Twitter-like UI** - Familiar interface with modern design  
 🔄 **Auto-reconnect** - Robust connection handling with retry logic  
 📱 **Responsive Design** - Works seamlessly on desktop and mobile  
@@ -96,6 +97,8 @@ The application will open at `http://localhost:3000`
 
 1. **Start the Stream** - Click "Start Stream" to begin monitoring tweets
 2. **Add Hashtags** - Use the hashtag manager to add/remove keywords
+   - Add from manager: Clears feed and reloads with new hashtag
+   - **Click hashtag in tweet**: Preserves current feed and adds new hashtag seamlessly
 3. **View Tweets** - See real-time updates in the Twitter-like interface
 4. **Filtering** - Tweets are automatically filtered for English/German only
 
@@ -304,6 +307,13 @@ See [DOCKER_README.md](DOCKER_README.md) for detailed Docker instructions.
 MIT License - see [LICENSE](LICENSE) file for details
 
 ## Changelog
+
+### [v1.1.0](https://github.com/pashol/esctwat/releases/tag/v1.1.0) - 2026-01-26
+- Smart feed preservation when adding hashtags from tweets
+- Click hashtags in tweets to add them without clearing the feed
+- Improved tweet deduplication system with ID tracking
+- Enhanced backfill tweet handling for seamless feed merging
+- Bug fixes and code refactoring
 
 ### [v1.0.0](https://github.com/pashol/esctwat/releases/tag/v1.0.0) - 2026-01-26
 - Initial release with polling-based Twitter monitoring

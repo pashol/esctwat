@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const trimTrailingSlash = (value = '') => value.replace(/\/$/, '');
 
@@ -67,6 +67,43 @@ const useTwitterStream = () => {
   const eventSourceRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const tweetIdsRef = useRef(new Set());
+
+  const addTweetToState = useCallback((tweet) => {
+    if (!tweet || !tweet.id) {
+      return;
+    }
+
+    setTweets(prev => {
+      if (tweetIdsRef.current.has(tweet.id)) {
+        return prev;
+      }
+
+      const next = [tweet, ...prev];
+      tweetIdsRef.current.add(tweet.id);
+
+      if (next.length > 200) {
+        const trimmed = next.slice(0, 200);
+        next.slice(200).forEach(item => {
+          if (item && item.id) {
+            tweetIdsRef.current.delete(item.id);
+          }
+        });
+        return trimmed;
+      }
+
+      return next;
+    });
+  }, []);
+
+  const replaceTweetList = useCallback((incoming = []) => {
+    const sanitized = incoming
+      .filter(tweet => tweet && tweet.id)
+      .slice(0, 200);
+
+    tweetIdsRef.current = new Set(sanitized.map(tweet => tweet.id));
+    setTweets(sanitized);
+  }, []);
 
   // Fetch initial status and hashtags
   useEffect(() => {
@@ -79,7 +116,7 @@ const useTwitterStream = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchInitialData = async () => {
+   const fetchInitialData = async () => {
     try {
       const [statusResponse, hashtagsResponse] = await Promise.all([
         fetch(buildApiUrl('/api/stream/status')),
@@ -163,15 +200,7 @@ const useTwitterStream = () => {
 
           case 'tweet':
             console.log('[SSE] Received tweet message');
-            console.log('[SSE] Full data object:', JSON.stringify(data, null, 2));
-            console.log('[SSE] Tweet data.data:', JSON.stringify(data.data, null, 2));
-            console.log('[SSE] Adding tweet to state:', data.data);
-            setTweets(prev => {
-              const next = [data.data, ...prev];
-              console.log('[SSE] Updated tweets array - previous length:', prev.length, 'new length:', next.length);
-              console.log('[SSE] First tweet in array:', next[0]);
-              return next.slice(0, 200);
-            });
+             addTweetToState(data.data);
             break;
 
           case 'error':
@@ -215,7 +244,11 @@ const useTwitterStream = () => {
     return eventSource;
   };
 
-  const startStream = async () => {
+  const startStream = async (options = {}) => {
+    const resolvedOptions = options && typeof options.preventDefault === 'function'
+      ? {}
+      : options || {};
+    const { preserveFeed = false } = resolvedOptions;
     setIsLoading(true);
     setError(null);
     
@@ -248,11 +281,14 @@ const useTwitterStream = () => {
       
       console.log('[Stream] Response data:', data);
 
-      if (response.ok) {
-        console.log('[Stream] Stream started successfully');
-        // Clear tweets and fetch backfill before starting SSE connection
-        clearTweets();
-        await fetchBackfillTweets(); // Fetch about 20 recent tweets
+       if (response.ok) {
+         console.log('[Stream] Stream started successfully');
+        if (!preserveFeed) {
+          clearTweets();
+          await fetchBackfillTweets({ replace: true });
+        } else {
+          await fetchBackfillTweets({ replace: false });
+        }
         connectStream();
         fetchInitialData(); // Refresh status
       } else {
@@ -267,7 +303,11 @@ const useTwitterStream = () => {
     }
   };
 
-  const stopStream = async () => {
+  const stopStream = async (options = {}) => {
+    const resolvedOptions = options && typeof options.preventDefault === 'function'
+      ? {}
+      : options || {};
+    const { preserveFeed = false } = resolvedOptions;
     setIsLoading(true);
     
     try {
@@ -291,9 +331,11 @@ const useTwitterStream = () => {
         body: JSON.stringify({}),
       });
 
-      if (response.ok) {
+       if (response.ok) {
         fetchInitialData(); // Refresh status
-        clearTweets();
+        if (!preserveFeed) {
+          clearTweets();
+        }
       } else {
         const data = await response.json();
         setError(data.error || 'Failed to stop stream');
@@ -306,9 +348,10 @@ const useTwitterStream = () => {
     }
   };
 
-  const addHashtag = async (hashtag) => {
+  const addHashtag = async (hashtag, options = {}) => {
+    const { keepFeed = false } = options;
     try {
-      const response = await fetch('/api/hashtags/add', {
+      const response = await fetch(buildApiUrl('/api/hashtags/add'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -319,13 +362,17 @@ const useTwitterStream = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setHashtags(data.hashtags);
+         setHashtags(data.hashtags);
 
-        // If stream is active, restart it with new hashtags
-        if (streamStatus.isConnected) {
-          await stopStream();
-          setTimeout(() => startStream(), 1000);
-        }
+         if (streamStatus.isConnected) {
+           if (keepFeed) {
+             await stopStream({ preserveFeed: true });
+             setTimeout(() => startStream({ preserveFeed: true }), 1000);
+           } else {
+             await stopStream({ preserveFeed: false });
+             setTimeout(() => startStream({ preserveFeed: false }), 1000);
+           }
+         }
 
         return true;
       } else {
@@ -341,7 +388,7 @@ const useTwitterStream = () => {
 
   const removeHashtag = async (hashtag) => {
     try {
-      const response = await fetch('/api/hashtags/remove', {
+      const response = await fetch(buildApiUrl('/api/hashtags/remove'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -356,8 +403,8 @@ const useTwitterStream = () => {
         
         // If stream is active, restart it with new hashtags
         if (streamStatus.isConnected) {
-          await stopStream();
-          setTimeout(() => startStream(), 1000);
+          await stopStream({ preserveFeed: false });
+          setTimeout(() => startStream({ preserveFeed: false }), 1000);
         }
         
         return true;
@@ -374,7 +421,7 @@ const useTwitterStream = () => {
 
   const updateHashtags = async (newHashtags) => {
     try {
-      const response = await fetch('/api/hashtags/update', {
+      const response = await fetch(buildApiUrl('/api/hashtags/update'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -389,8 +436,8 @@ const useTwitterStream = () => {
         
         // If stream is active, restart it with new hashtags
         if (streamStatus.isConnected) {
-          await stopStream();
-          setTimeout(() => startStream(), 1000);
+          await stopStream({ preserveFeed: false });
+          setTimeout(() => startStream({ preserveFeed: false }), 1000);
         }
         
         return true;
@@ -405,7 +452,7 @@ const useTwitterStream = () => {
     }
   };
 
-  const fetchBackfillTweets = async () => {
+  const fetchBackfillTweets = async ({ replace = true } = {}) => {
     try {
       console.log('[Backfill] Fetching backfill tweets');
       const response = await fetch(buildApiUrl('/api/tweets/backfill'), {
@@ -415,11 +462,22 @@ const useTwitterStream = () => {
         },
       });
 
-      if (response.ok) {
+       if (response.ok) {
         const data = await response.json();
         console.log('[Backfill] Received tweets:', data.tweets?.length || 0);
         if (data.tweets && data.tweets.length > 0) {
-          setTweets(data.tweets.slice(0, 20)); // Limit to 20 tweets
+            const initialTweets = data.tweets
+              .filter(tweet => tweet && tweet.id)
+              .slice(0, 20);
+          if (replace) {
+            replaceTweetList(initialTweets);
+          } else {
+            const existingIds = tweetIdsRef.current;
+            const uniqueNewTweets = initialTweets.filter(tweet => !existingIds.has(tweet.id));
+            if (uniqueNewTweets.length) {
+              uniqueNewTweets.forEach(addTweetToState);
+            }
+          }
         }
       } else {
         console.error('[Backfill] Failed to fetch backfill tweets:', response.statusText);
@@ -429,9 +487,10 @@ const useTwitterStream = () => {
     }
   };
 
-  const clearTweets = () => {
+  const clearTweets = useCallback(() => {
+    tweetIdsRef.current = new Set();
     setTweets([]);
-  };
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {

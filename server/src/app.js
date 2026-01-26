@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const TwitterClient = require('./twitter/client');
 const HashtagFilter = require('./twitter/filters');
 const streamSettings = require('./settings');
+const logger = require('./logger');
 
 // Load environment variables
 dotenv.config();
@@ -29,7 +30,7 @@ const emitSettingsChange = () => {
     try {
       client.write(payload);
     } catch (error) {
-      console.error('Error broadcasting settings update:', error);
+      logger.error('Error broadcasting settings update:', error);
       connections.delete(client);
     }
   });
@@ -51,7 +52,7 @@ const broadcastConnectionUpdate = () => {
     try {
       client.write(payload);
     } catch (error) {
-      console.error('Error broadcasting connection update:', error);
+      logger.error('Error broadcasting connection update:', error);
       connections.delete(client);
     }
   });
@@ -69,7 +70,7 @@ const tweetsRoutes = express.Router();
 
 // SSE endpoint for real-time tweet streaming
 streamRoutes.get('/', (req, res) => {
-  console.log('New SSE connection established');
+  logger.debug('New SSE connection established');
 
   // Set SSE headers
   res.writeHead(200, {
@@ -90,16 +91,16 @@ streamRoutes.get('/', (req, res) => {
 
   // Send initial connection message
   const initialPayload = buildConnectionPayload('connected');
-  console.log('[SSE] Sending initial connection message to new client:', initialPayload);
+  logger.debug('[SSE] Sending initial connection message to new client:', initialPayload);
   res.write(`data: ${JSON.stringify(initialPayload)}\n\n`);
   
   // Send a test heartbeat every 5 seconds to verify connection is alive
   const heartbeatInterval = setInterval(() => {
     try {
-      console.log('[SSE] Sending heartbeat to client');
+      logger.debug('[SSE] Sending heartbeat to client');
       res.write(`:heartbeat\n\n`);
     } catch (error) {
-      console.error('[SSE] Heartbeat failed:', error);
+      logger.error('[SSE] Heartbeat failed:', error);
       clearInterval(heartbeatInterval);
       connections.delete(res);
     }
@@ -109,14 +110,14 @@ streamRoutes.get('/', (req, res) => {
 
   // Handle client disconnect
   req.on('close', () => {
-    console.log('[SSE] Connection closed by client');
+    logger.info('[SSE] Connection closed by client');
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     connections.delete(res);
     broadcastConnectionUpdate();
   });
 
   req.on('error', (err) => {
-    console.error('[SSE] Connection error:', err);
+    logger.error('[SSE] Connection error:', err);
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     connections.delete(res);
     broadcastConnectionUpdate();
@@ -149,37 +150,37 @@ streamRoutes.post('/start', async (req, res) => {
     }
 
     const onTweet = (tweetData) => {
-      console.log('[Broadcast] Received tweet to broadcast, connections:', connections.size);
-      console.log('[Broadcast] Raw tweet data:', JSON.stringify(tweetData, null, 2));
+      logger.debug('[Broadcast] Received tweet to broadcast, connections:', connections.size);
+      logger.debug('[Broadcast] Raw tweet data:', JSON.stringify(tweetData, null, 2));
       const tweet = formatTweetData(tweetData);
 
       if (!tweet) {
-        console.log('[Broadcast] formatTweetData returned null, skipping');
+        logger.debug('[Broadcast] formatTweetData returned null, skipping');
         return;
       }
 
-      console.log('[Broadcast] Formatted tweet:', JSON.stringify(tweet, null, 2));
-      console.log('[Broadcast] Broadcasting tweet to', connections.size, 'clients');
+      logger.debug('[Broadcast] Formatted tweet:', JSON.stringify(tweet, null, 2));
+      logger.debug('[Broadcast] Broadcasting tweet to', connections.size, 'clients');
       const payload = { type: 'tweet', data: tweet };
-      console.log('[Broadcast] SSE payload:', JSON.stringify(payload));
+      logger.debug('[Broadcast] SSE payload:', JSON.stringify(payload));
       connections.forEach(client => {
         try {
           client.write(`data: ${JSON.stringify(payload)}\n\n`);
-          console.log('[Broadcast] Successfully wrote to client');
+          logger.debug('[Broadcast] Successfully wrote to client');
         } catch (error) {
-          console.error('Error sending tweet to client:', error);
+          logger.error('Error sending tweet to client:', error);
           connections.delete(client);
         }
       });
     };
 
     const onError = (error) => {
-      console.error('Search error:', error);
+      logger.error('Search error:', error);
       connections.forEach(client => {
         try {
           client.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
         } catch (err) {
-          console.error('Error sending error to client:', err);
+          logger.error('Error sending error to client:', err);
           connections.delete(client);
         }
       });
@@ -205,7 +206,7 @@ streamRoutes.post('/start', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error starting stream:', error);
+    logger.error('Error starting stream:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -323,7 +324,7 @@ settingsRoutes.post('/update', async (req, res) => {
   if (streamStatus.isConnected && pollingInterval) {
     const hashtags = hashtagFilter.getHashtags();
     if (hashtags.length > 0) {
-      console.log('[Settings] Restarting stream to apply new polling interval');
+       logger.info('[Settings] Restarting stream to apply new polling interval');
       twitterClient.stopStreaming();
       
       // Give it a moment to stop
@@ -338,19 +339,19 @@ settingsRoutes.post('/update', async (req, res) => {
           try {
             client.write(`data: ${JSON.stringify(payload)}\n\n`);
           } catch (error) {
-            console.error('Error sending tweet to client:', error);
+            logger.error('Error sending tweet to client:', error);
             connections.delete(client);
           }
         });
       };
       
       const onError = (error) => {
-        console.error('Search error:', error);
+        logger.error('Search error:', error);
         connections.forEach(client => {
           try {
             client.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
           } catch (err) {
-            console.error('Error sending error to client:', err);
+            logger.error('Error sending error to client:', err);
             connections.delete(client);
           }
         });
@@ -391,10 +392,13 @@ tweetsRoutes.get('/backfill', async (req, res) => {
       20, // Fetch 20 tweets for backfill
       settings
     );
-    
-    res.json({ tweets: tweets || [] });
+    const formattedTweets = (tweets || [])
+      .map(formatTweetData)
+      .filter(Boolean);
+
+    res.json({ tweets: formattedTweets });
   } catch (error) {
-    console.error('Error fetching backfill tweets:', error);
+    logger.error('Error fetching backfill tweets:', error);
     res.status(500).json({ error: 'Failed to fetch backfill tweets' });
   }
 });
@@ -407,10 +411,36 @@ function formatTweetData(tweetData) {
 
   const tweet = tweetData.data;
   const users = tweetData.includes?.users || [];
+  const mediaIncludes = tweetData.includes?.media || [];
   const author = users.find(user => user.id === tweet.author_id);
+  const mediaMap = new Map(mediaIncludes.map(media => [media.media_key, media]));
+
+  let media = [];
+  if (tweet.attachments?.media_keys?.length) {
+    media = tweet.attachments.media_keys
+      .map(key => mediaMap.get(key))
+      .filter(Boolean)
+      .map(item => ({
+        mediaKey: item.media_key,
+        type: item.type,
+        url: item.url || item.preview_image_url || null,
+        previewImageUrl: item.preview_image_url || null,
+        durationMs: item.duration_ms || null,
+        width: item.width || null,
+        height: item.height || null,
+        altText: item.alt_text || null,
+        variants: item.variants || null
+      }));
+  }
+
+  const entities = tweet.entities || {};
+  if (media.length) {
+    entities.media = media;
+  }
 
   return {
     id: tweet.id,
+    url: `https://twitter.com/${author?.username || 'i'}/status/${tweet.id}`,
     text: tweet.text,
     author: {
       id: tweet.author_id,
@@ -421,7 +451,8 @@ function formatTweetData(tweetData) {
     createdAt: tweet.created_at,
     language: tweet.lang,
     publicMetrics: tweet.public_metrics || {},
-    entities: tweet.entities || {},
+    entities,
+    media,
     lang: tweet.lang
   };
 }
@@ -443,7 +474,7 @@ app.get('/health', (req, res) => {
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-  console.error('Unhandled error:', error);
+    logger.error('Unhandled error:', error);
   if (process.env.NODE_ENV === 'production') {
     res.status(500).json({ error: 'Internal server error' });
   } else {
@@ -458,16 +489,16 @@ const startServer = (port = PORT) => {
   }
 
   server = app.listen(port, () => {
-    console.log(`Eurovision Twitter Monitor server running on port ${port}`);
-    console.log(`SSE endpoint: http://localhost:${port}/api/stream`);
-    console.log(`Health check: http://localhost:${port}/health`);
+    logger.info(`Eurovision Twitter Monitor server running on port ${port}`);
+    logger.info(`SSE endpoint: http://localhost:${port}/api/stream`);
+    logger.info(`Health check: http://localhost:${port}/health`);
 
     // Initialize Twitter client
     try {
       twitterClient.initialize();
-      console.log('Twitter client initialized successfully');
+      logger.info('Twitter client initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize Twitter client:', error.message);
+      logger.error('Failed to initialize Twitter client:', error.message);
     }
   });
 
@@ -480,14 +511,14 @@ const stopServer = () => {
   }
 
   server.close(() => {
-    console.log('HTTP server closed');
+    logger.info('HTTP server closed');
   });
   server = null;
 };
 
 // Graceful shutdown
 const shutdown = (signal) => {
-  console.log(`${signal} received, shutting down gracefully`);
+  logger.warn(`${signal} received, shutting down gracefully`);
   twitterClient.stopStreaming();
   connections.forEach(client => client.end());
   if (server) {
@@ -499,7 +530,7 @@ const shutdown = (signal) => {
   }
 
   setTimeout(() => {
-    console.warn('Force exiting after graceful shutdown timeout');
+    logger.warn('Force exiting after graceful shutdown timeout');
     process.exit(1);
   }, 10000).unref();
 };

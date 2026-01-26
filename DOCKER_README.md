@@ -71,7 +71,7 @@ You can set environment variables in several ways:
 
 ### Option 1: Command Line (Recommended for Security)
 ```bash
-TWITTER_BEARER_TOKEN=your_token docker-compose up
+TWITTER_BEARER_TOKEN=your_token LOG_LEVEL=info docker-compose up
 ```
 
 ### Option 2: Create .env File
@@ -80,6 +80,7 @@ Create a `.env` file in the project root:
 TWITTER_BEARER_TOKEN=your_bearer_token_here
 NODE_ENV=production
 PORT=5000
+LOG_LEVEL=info
 ```
 
 Then run:
@@ -89,6 +90,9 @@ docker-compose up
 
 ### Option 3: In docker-compose.yml
 Edit the `environment` section in `docker-compose.yml` directly.
+
+### Logging Verbosity
+`LOG_LEVEL` controls backend logging verbosity. Supported values: `error`, `warn`, `info` (default), `debug`.
 
 ## Image Details
 

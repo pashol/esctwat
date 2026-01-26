@@ -35,14 +35,6 @@ function App() {
     clearTweets
   } = useTwitterStream();
 
-  // Debug: log tweets whenever they change
-  useEffect(() => {
-    console.log('[App] Tweets state updated. Length:', tweets.length);
-    if (tweets.length > 0) {
-      console.log('[App] First tweet:', tweets[0]);
-    }
-  }, [tweets]);
-
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
 
   useEffect(() => {
@@ -90,9 +82,7 @@ function App() {
     }
   };
 
-  const handleAddHashtag = (hashtag) => {
-    return addHashtag(hashtag);
-  };
+  const handleAddHashtag = (hashtag, options) => addHashtag(hashtag, options);
 
   const handleRemoveHashtag = (hashtag) => {
     removeHashtag(hashtag);
@@ -261,7 +251,7 @@ function App() {
           ) : (
             <div className="tweet-masonry">
               {tweets.map((tweet) => (
-                <Tweet key={tweet.id} tweet={tweet} />
+                <Tweet key={tweet.id} tweet={tweet} onAddHashtag={handleAddHashtag} />
               ))}
             </div>
           )}

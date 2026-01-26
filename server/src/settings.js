@@ -4,7 +4,7 @@ class StreamSettings {
       languages: ['en', 'de'],
       includeRetweets: false,
       testMode: false,
-      pollingInterval: 10
+      pollingInterval: 30
     };
     this.current = { ...this.defaults };
   }
@@ -29,7 +29,7 @@ class StreamSettings {
 
     next.includeRetweets = Boolean(next.includeRetweets);
     next.testMode = Boolean(next.testMode);
-    next.pollingInterval = Number(next.pollingInterval) || 10;
+    next.pollingInterval = Number(next.pollingInterval) || 30;
 
     this.current = next;
     return this.getSettings();
