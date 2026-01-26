@@ -29,6 +29,11 @@ RUN npm ci --only=production
 # Stage 3: Production image
 FROM node:18-alpine
 
+# Add OCI labels for GitHub Container Registry linking
+LABEL org.opencontainers.image.source=https://github.com/pashol/esctwat
+LABEL org.opencontainers.image.description="Eurovision Twitter Monitor - Real-time Twitter monitoring for Eurovision-related tweets"
+LABEL org.opencontainers.image.licenses=MIT
+
 # Set working directory
 WORKDIR /app
 
