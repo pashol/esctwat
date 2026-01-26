@@ -81,7 +81,7 @@ class TwitterClient {
           'user.fields': ['username', 'name', 'profile_image_url'],
           'media.fields': ['media_key', 'type', 'url', 'preview_image_url', 'duration_ms', 'width', 'height', 'alt_text', 'variants'],
           'expansions': ['author_id', 'attachments.media_keys'],
-          'max_results': 50,
+          'max_results': options.pollingLimit || 10,
           'sort_order': 'recency'
         };
 
@@ -210,12 +210,17 @@ class TwitterClient {
     logger.info('Twitter search polling stopped');
   }
 
-  async fetchRecentTweets(hashtags, count = 20, options = {}) {
+  async fetchRecentTweets(hashtags, count = 10, options = {}) {
     if (!this.client) {
       this.initialize();
     }
 
     try {
+      // If count is 0, return empty array immediately (backfill disabled)
+      if (count === 0) {
+        return [];
+      }
+
       const { languages = [], includeRetweets = false, testMode = false } = options;
       
       // Build search query

@@ -315,8 +315,9 @@ settingsRoutes.get('/', (req, res) => {
 });
 
 settingsRoutes.post('/update', async (req, res) => {
-  const { languages, includeRetweets, testMode, pollingInterval } = req.body;
-  const updated = streamSettings.updateSettings({ languages, includeRetweets, testMode, pollingInterval });
+  const { languages, includeRetweets, testMode, pollingInterval, backfillLimit, pollingLimit, displayLimit } = req.body;
+  logger.debug('[Settings] Request body:', req.body);
+  const updated = streamSettings.updateSettings({ languages, includeRetweets, testMode, pollingInterval, backfillLimit, pollingLimit, displayLimit });
   emitSettingsChange();
   
   // If stream is running and polling interval changed, restart it to apply new interval
@@ -389,7 +390,7 @@ tweetsRoutes.get('/backfill', async (req, res) => {
     
     const tweets = await twitterClient.fetchRecentTweets(
       hashtags,
-      20, // Fetch 20 tweets for backfill
+      settings.backfillLimit, // Use dynamic backfill limit from settings
       settings
     );
     const formattedTweets = (tweets || [])

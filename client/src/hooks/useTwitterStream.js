@@ -59,7 +59,11 @@ const useTwitterStream = () => {
   const [settings, setSettings] = useState({
     languages: ['en', 'de'],
     includeRetweets: false,
-    testMode: false
+    testMode: false,
+    pollingInterval: 30,
+    backfillLimit: 10,
+    pollingLimit: 10,
+    displayLimit: 200
   });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,12 +83,13 @@ const useTwitterStream = () => {
         return prev;
       }
 
+      const displayLimit = settings.displayLimit || 200;
       const next = [tweet, ...prev];
       tweetIdsRef.current.add(tweet.id);
 
-      if (next.length > 200) {
-        const trimmed = next.slice(0, 200);
-        next.slice(200).forEach(item => {
+      if (next.length > displayLimit) {
+        const trimmed = next.slice(0, displayLimit);
+        next.slice(displayLimit).forEach(item => {
           if (item && item.id) {
             tweetIdsRef.current.delete(item.id);
           }
@@ -94,16 +99,17 @@ const useTwitterStream = () => {
 
       return next;
     });
-  }, []);
+  }, [settings.displayLimit]);
 
   const replaceTweetList = useCallback((incoming = []) => {
+    const displayLimit = settings.displayLimit || 200;
     const sanitized = incoming
       .filter(tweet => tweet && tweet.id)
-      .slice(0, 200);
+      .slice(0, displayLimit);
 
     tweetIdsRef.current = new Set(sanitized.map(tweet => tweet.id));
     setTweets(sanitized);
-  }, []);
+  }, [settings.displayLimit]);
 
   // Fetch initial status and hashtags
   useEffect(() => {
@@ -454,7 +460,18 @@ const useTwitterStream = () => {
 
   const fetchBackfillTweets = async ({ replace = true } = {}) => {
     try {
-      console.log('[Backfill] Fetching backfill tweets');
+      const backfillLimit = settings.backfillLimit || 10;
+      console.log('[Backfill] Fetching backfill tweets, limit:', backfillLimit);
+      
+      // Skip backfill if limit is 0
+      if (backfillLimit === 0) {
+        console.log('[Backfill] Backfill disabled (limit is 0)');
+        if (replace) {
+          replaceTweetList([]);
+        }
+        return;
+      }
+      
       const response = await fetch(buildApiUrl('/api/tweets/backfill'), {
         method: 'GET',
         headers: {
@@ -468,7 +485,7 @@ const useTwitterStream = () => {
         if (data.tweets && data.tweets.length > 0) {
             const initialTweets = data.tweets
               .filter(tweet => tweet && tweet.id)
-              .slice(0, 20);
+              .slice(0, backfillLimit);
           if (replace) {
             replaceTweetList(initialTweets);
           } else {

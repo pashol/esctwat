@@ -25,12 +25,18 @@ const StreamSettings = ({
   const [includeRetweets, setIncludeRetweets] = useState(settings.includeRetweets || false);
   const [testMode, setTestMode] = useState(settings.testMode || false);
   const [pollingInterval, setPollingInterval] = useState(settings.pollingInterval || 30);
+  const [backfillLimit, setBackfillLimit] = useState(settings.backfillLimit || 10);
+  const [pollingLimit, setPollingLimit] = useState(settings.pollingLimit || 10);
+  const [displayLimit, setDisplayLimit] = useState(settings.displayLimit || 200);
 
   useEffect(() => {
     setSelectedLanguages(settings.languages || []);
     setIncludeRetweets(Boolean(settings.includeRetweets));
     setTestMode(Boolean(settings.testMode));
     setPollingInterval(settings.pollingInterval || 30);
+    setBackfillLimit(settings.backfillLimit || 10);
+    setPollingLimit(settings.pollingLimit || 10);
+    setDisplayLimit(settings.displayLimit || 200);
   }, [settings]);
 
   const toggleLanguage = (lang) => {
@@ -46,7 +52,10 @@ const StreamSettings = ({
       languages: testMode ? [] : selectedLanguages,
       includeRetweets,
       testMode,
-      pollingInterval
+      pollingInterval,
+      backfillLimit,
+      pollingLimit,
+      displayLimit
     });
   };
 
@@ -126,6 +135,69 @@ const StreamSettings = ({
           <p className="text-xs text-muted">
             Enable if you want retweets to appear in the feed. Leave disabled to focus on original posts.
           </p>
+        </div>
+
+        <div className="surface-subtle p-4 rounded-xl space-y-4">
+          <h4 className="text-sm font-medium">Tweet Limits</h4>
+          
+          {/* Initial Load (Backfill) */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Initial Load (backfill)</label>
+            <select
+              value={backfillLimit}
+              onChange={(e) => setBackfillLimit(Number(e.target.value))}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={0}>Disabled (no initial load)</option>
+              <option value={5}>5 tweets</option>
+              <option value={10}>10 tweets (recommended)</option>
+              <option value={20}>20 tweets</option>
+              <option value={50}>50 tweets</option>
+            </select>
+            <p className="text-xs text-muted mt-1">
+              {backfillLimit === 0 
+                ? "No tweets will be loaded when starting the stream."
+                : "Tweets to load immediately when starting the stream."
+              }
+            </p>
+          </div>
+
+          {/* Per Refresh Cycle */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Per Refresh Cycle</label>
+            <select
+              value={pollingLimit}
+              onChange={(e) => setPollingLimit(Number(e.target.value))}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={5}>5 tweets</option>
+              <option value={10}>10 tweets (recommended)</option>
+              <option value={20}>20 tweets</option>
+              <option value={50}>50 tweets</option>
+            </select>
+            <p className="text-xs text-muted mt-1">
+              Maximum tweets to fetch per polling cycle.
+            </p>
+          </div>
+
+          {/* Total Display Limit */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Total Display Limit</label>
+            <select
+              value={displayLimit}
+              onChange={(e) => setDisplayLimit(Number(e.target.value))}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={50}>50 tweets</option>
+              <option value={100}>100 tweets</option>
+              <option value={200}>200 tweets (recommended)</option>
+              <option value={500}>500 tweets</option>
+              <option value={1000}>1000 tweets</option>
+            </select>
+            <p className="text-xs text-muted mt-1">
+              Maximum tweets to keep in browser memory. Older tweets are removed automatically.
+            </p>
+          </div>
         </div>
       </div>
 

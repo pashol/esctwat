@@ -13,6 +13,7 @@ A real-time web application that monitors X.com (Twitter) for Eurovision-related
 🇬🇧🇩🇪 **Language Filtering** - Shows English and German tweets only  
 🏷️ **Dynamic Hashtags** - Add/remove hashtags on the fly  
 ✨ **Smart Feed Preservation** - Click hashtags in tweets to add them without clearing your feed  
+⚙️ **Configurable Limits** - Set backfill, polling, and display limits for tweets  
 🎨 **Twitter-like UI** - Familiar interface with modern design  
 🔄 **Auto-reconnect** - Robust connection handling with retry logic  
 📱 **Responsive Design** - Works seamlessly on desktop and mobile  
@@ -146,7 +147,7 @@ This app uses **search polling** (not filtered streaming) because the Twitter AP
 
 ### Settings Management
 - `GET /api/settings` - Get current settings
-- `POST /api/settings/update` - Update languages, retweets, test mode, polling interval
+- `POST /api/settings/update` - Update languages, retweets, test mode, polling interval, tweet limits
 - `POST /api/settings/reset` - Reset to defaults
 
 ### Tweets
@@ -169,8 +170,11 @@ The Twitter stream is filtered to show:
 ### Runtime Settings (Configurable via UI)
 - **Languages** - Toggle English/German filtering
 - **Include Retweets** - Include or exclude retweets
-- **Polling Interval** - Adjust tweet polling frequency (default: 10 seconds)
+- **Polling Interval** - Adjust tweet polling frequency (default: 30 seconds)
 - **Test Mode** - Disable language filters for testing
+- **Initial Load (Backfill)** - Set number of tweets to load when starting stream (0-50)
+- **Per Refresh Cycle** - Set maximum tweets to fetch per polling cycle (5-50)
+- **Total Display Limit** - Set maximum tweets to keep in browser memory (50-1000)
 
 ## Troubleshooting
 
@@ -307,6 +311,13 @@ See [DOCKER_README.md](DOCKER_README.md) for detailed Docker instructions.
 MIT License - see [LICENSE](LICENSE) file for details
 
 ## Changelog
+
+### [v1.2.0](https://github.com/pashol/esctwat/releases/tag/v1.2.0) - 2026-01-26
+- Configurable tweet limits - control backfill, polling, and display limits
+- Backfill option can be disabled (set to 0)
+- Dynamic display limit prevents memory overflow in browser
+- Improved polling limit controls API usage per cycle
+- Enhanced settings management with validation
 
 ### [v1.1.0](https://github.com/pashol/esctwat/releases/tag/v1.1.0) - 2026-01-26
 - Smart feed preservation when adding hashtags from tweets
