@@ -23,8 +23,8 @@ WORKDIR /app/server
 # Copy server package files
 COPY server/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (using npm install for production to avoid ci strictness)
+RUN npm install --production --no-optional
 
 # Stage 3: Production image
 FROM node:18-alpine
