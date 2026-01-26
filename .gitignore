@@ -1,0 +1,81 @@
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Production builds
+build/
+dist/
+.next/
+out/
+
+# Development
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc
+.env.*.local
+.cache
+.parcel-cache
+.next
+dist
+.tern-port
+.vuepress/dist
+.cache/
+.nuxt/
+dist/
+.cache/
+.vuepress/dist
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode
+.idea
+*.iml
+
+# Project specific
+server/node_modules
+client/node_modules
+server/.env
+client/.env
+.cache
