@@ -1,0 +1,274 @@
+import { useState, useEffect } from 'react';
+import Header from './components/Header';
+import Tweet from './components/Tweet';
+import HashtagManager from './components/HashtagManager';
+import StreamStatus from './components/StreamStatus';
+import StreamSettings from './components/StreamSettings';
+import useTwitterStream from './hooks/useTwitterStream';
+import './styles/globals.css';
+
+function App() {
+  const [showHashtagManager, setShowHashtagManager] = useState(false);
+  const [showStreamStatus, setShowStreamStatus] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showControlCenter, setShowControlCenter] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 'light';
+    }
+    return 'light';
+  });
+  
+  const {
+    tweets,
+    hashtags,
+    streamStatus,
+    connectedClients,
+    settings,
+    error,
+    isLoading,
+    startStream,
+    stopStream,
+    addHashtag,
+    removeHashtag,
+    updateHashtags,
+    clearTweets
+  } = useTwitterStream();
+
+  // Debug: log tweets whenever they change
+  useEffect(() => {
+    console.log('[App] Tweets state updated. Length:', tweets.length);
+    if (tweets.length > 0) {
+      console.log('[App] First tweet:', tweets[0]);
+    }
+  }, [tweets]);
+
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const updateSettings = async (nextSettings) => {
+    setIsUpdatingSettings(true);
+    try {
+      const response = await fetch('/api/settings/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextSettings)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update settings');
+      }
+    } catch (err) {
+      console.error('Failed to update settings:', err);
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
+
+  const resetSettings = async () => {
+    setIsUpdatingSettings(true);
+    try {
+      const response = await fetch('/api/settings/reset', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reset settings');
+      }
+    } catch (err) {
+      console.error('Failed to reset settings:', err);
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
+
+  const handleAddHashtag = (hashtag) => {
+    return addHashtag(hashtag);
+  };
+
+  const handleRemoveHashtag = (hashtag) => {
+    removeHashtag(hashtag);
+  };
+
+  const handleUpdateHashtags = (newHashtags) => {
+    updateHashtags(newHashtags);
+  };
+
+  return (
+    <div className="app-shell">
+      <Header 
+        tweetCount={tweets.length} 
+        onClearTweets={clearTweets}
+        onToggleControlCenter={() => setShowControlCenter(prev => !prev)}
+        isControlCenterOpen={showControlCenter}
+      />
+
+      <div className="w-full px-6 py-10 space-y-8">
+        {/* Error Display */}
+        {error && (
+          <div className="surface-card surface-card--flat border border-red-200/40 text-red-500 p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-semibold">Error</h3>
+                <p className="mt-1 text-sm">{error}</p>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="ml-auto text-sm underline hover:text-red-300"
+              >
+                Reload
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showControlCenter && (
+          <section className="control-panel space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Control Center</h2>
+                <p className="text-sm text-muted">Start streams, adjust filters, and tune the experience.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleTheme}
+                  className="theme-toggle"
+                >
+                  {theme === 'light' ? (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414M18.364 18.364l-1.414-1.414M7.05 7.05 5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                      Light
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" /></svg>
+                      Dark
+                    </>
+                  )}
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowStreamStatus(!showStreamStatus)}
+                    className={`pill-button ${showStreamStatus ? 'active' : 'inactive'}`}
+                  >
+                    Status
+                  </button>
+                  <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className={`pill-button ${showSettings ? 'active' : 'inactive'}`}
+                  >
+                    Settings
+                  </button>
+                  <button
+                    onClick={() => setShowHashtagManager(!showHashtagManager)}
+                    className={`pill-button ${showHashtagManager ? 'active' : 'inactive'}`}
+                  >
+                    Hashtags ({hashtags.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {showStreamStatus && (
+                <StreamStatus
+                  status={streamStatus}
+                  connectedClients={connectedClients}
+                  onStartStream={startStream}
+                  onStopStream={stopStream}
+                  isLoading={isLoading}
+                />
+              )}
+
+              {showSettings && (
+                <StreamSettings
+                  settings={settings}
+                  onUpdate={updateSettings}
+                  onReset={resetSettings}
+                  isUpdating={isUpdatingSettings}
+                />
+              )}
+
+              {showHashtagManager && (
+                <HashtagManager
+                  hashtags={hashtags}
+                  onAddHashtag={handleAddHashtag}
+                  onRemoveHashtag={handleRemoveHashtag}
+                  onUpdateHashtags={handleUpdateHashtags}
+                  isLoading={isLoading}
+                />
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Tweet Feed */}
+        <section className="space-y-6">
+          <header className="tweet-list-header">
+            <div>
+              <div className="text-sm text-muted">Live Stream</div>
+              <div className="text-xs text-muted mt-0.5">Hashtags: {hashtags.join(', ') || '—'}</div>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <span className={`inline-flex items-center gap-1 ${streamStatus.isConnected ? 'text-green-500' : ''}`}>
+                <span className={`w-2 h-2 rounded-full ${streamStatus.isConnected ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                {streamStatus.isConnected ? 'Live' : 'Offline'}
+              </span>
+              <span>•</span>
+              <span>{tweets.length} tweets</span>
+            </div>
+          </header>
+
+          {tweets.length === 0 ? (
+            <div className="empty-state p-12 text-center">
+              <div className="text-gray-400 mb-4">
+                <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-twitter-dark mb-2">
+                {streamStatus.isConnected ? 'Waiting for tweets...' : 'Start the stream to see tweets'}
+              </h3>
+              <p className="text-twitter-gray mb-4">
+                {streamStatus.isConnected 
+                  ? `Monitoring ${hashtags.join(', ')} hashtags in English and German`
+                  : 'Click "Start Stream" to begin monitoring Eurovision-related tweets'
+                }
+              </p>
+              {!streamStatus.isConnected && (
+                <button
+                  onClick={startStream}
+                  disabled={isLoading}
+                  className="px-6 py-2 accent-bg rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? 'Starting…' : 'Start Stream'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="tweet-masonry">
+              {tweets.map((tweet) => (
+                <Tweet key={tweet.id} tweet={tweet} />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+export default App;

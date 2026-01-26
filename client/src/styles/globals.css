@@ -1,0 +1,381 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Twitter-like styles */
+.twitter-border {
+  border-bottom: 1px solid #EFF3F4;
+}
+
+.twitter-hover {
+  transition: background-color 0.2s ease;
+}
+
+.twitter-hover:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.tweet-enter {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.connection-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.connection-status.connected {
+  background-color: #10B981;
+}
+
+.connection-status.connecting {
+  background-color: #F59E0B;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.connection-status.disconnected {
+  background-color: #EF4444;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+:root {
+  color-scheme: light;
+  --app-background: #edf1ff;
+  --surface: #ffffff;
+  --surface-elevated: #f5f7ff;
+  --surface-border: rgba(20, 23, 26, 0.08);
+  --text-primary: #0f172a;
+  --text-muted: rgba(71, 85, 105, 0.85);
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --shadow-soft: 0 22px 50px rgba(15, 23, 42, 0.08);
+  --shadow-hover: 0 26px 60px rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --app-background: #05091a;
+  --surface: #0b1224;
+  --surface-elevated: #111a33;
+  --surface-border: rgba(148, 163, 184, 0.16);
+  --text-primary: #e2e8f0;
+  --text-muted: rgba(202, 213, 225, 0.7);
+  --accent: #60a5fa;
+  --accent-contrast: #0b1224;
+  --shadow-soft: 0 22px 48px rgba(2, 6, 23, 0.6);
+  --shadow-hover: 0 28px 60px rgba(2, 6, 23, 0.75);
+}
+
+body {
+  background-color: var(--app-background);
+  color: var(--text-primary);
+  transition: background-color 0.4s ease, color 0.4s ease;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0) 40%), var(--app-background);
+  transition: background 0.4s ease;
+}
+
+.header-bar {
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--surface-border);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.surface-card {
+  background-color: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-soft);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.surface-card--flat {
+  box-shadow: none;
+}
+
+.surface-subtle {
+  background-color: var(--surface-elevated);
+  border-radius: 1rem;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.accent {
+  color: var(--accent);
+}
+
+.accent-bg {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.button-ghost {
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  transition: color 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.button-ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--surface-border);
+  background-color: var(--surface-elevated);
+}
+
+.tweet-masonry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: flex-start;
+}
+
+.tweet-masonry .tweet-card {
+  flex: 0 0 auto;
+}
+
+.tweet-card {
+  break-inside: avoid;
+  margin-bottom: 1.5rem;
+  width: 566px;
+  max-width: 566px;
+  background-color: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.tweet-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-hover);
+}
+
+.badge {
+  background-color: var(--surface-elevated);
+  color: var(--accent);
+  padding: 0.15rem 0.55rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tweet-meta {
+  color: var(--text-muted);
+}
+
+.tweet-body a {
+  color: var(--accent);
+}
+
+.tweet-body a:hover {
+  text-decoration: underline;
+}
+
+.tweet-hover {
+  transition: background-color 0.2s ease;
+}
+
+.tweet-hover:hover {
+  background-color: rgba(37, 99, 235, 0.06);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-color: var(--surface-elevated);
+  color: var(--text-primary);
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--surface-border);
+}
+
+.theme-toggle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.empty-state {
+  background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 55%),
+              radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.12), transparent 60%),
+              var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background-color: var(--surface-elevated);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+}
+
+.chip button {
+  color: inherit;
+}
+
+.chip button:hover {
+  color: var(--accent-contrast);
+}
+
+.control-panel {
+  border-radius: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-soft);
+  padding: 1.5rem;
+}
+
+.pill-button {
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pill-button.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.28);
+}
+
+.pill-button.inactive {
+  background: var(--surface-elevated);
+  color: var(--text-muted);
+}
+
+.pill-button.inactive:hover {
+  color: var(--text-primary);
+}
+
+.tweet-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: var(--shadow-soft);
+}
+
+.tweet-lang {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background-color: var(--surface-elevated);
+  color: var(--accent);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.icon-button {
+  padding: 0.35rem;
+  border-radius: 999px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.icon-button:hover {
+  background-color: rgba(37, 99, 235, 0.12);
+}
+
+.tweet-actions button {
+  color: var(--text-muted);
+}
+
+.tweet-actions button:hover {
+  color: var(--accent);
+}
+
+.tweet-body {
+  color: var(--text-primary);
+}
+
+.tweet-body strong {
+  color: var(--text-primary);
+}
+
+.tweet-body .highlight {
+  color: var(--accent);
+}
+
+.tweet-author {
+  color: var(--text-primary);
+}
+
+.tweet-author-secondary {
+  color: var(--text-muted);
+}
+
+:root .text-twitter-dark,
+[data-theme="dark"] .text-twitter-dark {
+  color: var(--text-primary) !important;
+}
+
+:root .text-twitter-gray,
+[data-theme="dark"] .text-twitter-gray {
+  color: var(--text-muted) !important;
+}
+
+:root .bg-twitter-light,
+[data-theme="dark"] .bg-twitter-light {
+  background-color: var(--surface-elevated) !important;
+}
+
+[data-theme="dark"] .bg-white {
+  background-color: var(--surface) !important;
+}
+
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-300 {
+  border-color: var(--surface-border) !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: rgba(148, 163, 184, 0.1) !important;
+}
+
+[data-theme="dark"] .bg-gray-100 {
+  background-color: rgba(148, 163, 184, 0.14) !important;
+}

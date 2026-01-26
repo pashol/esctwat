@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+**/node_modules
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist
+build
+**/build
+.next
+out
+.cache
+
+# Logs
+*.log
+
+# IDE
+.vscode
+.idea
+.DS_Store
+
+# Testing
+coverage
+.nyc_output
+.eslintcache
+
+# Client specific (will be copied separately in Dockerfile)
+client/node_modules
+client/build

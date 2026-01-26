@@ -1,0 +1,23 @@
+{
+  "name": "eurovision-twitter-monitor-server",
+  "version": "1.0.0",
+  "description": "Backend for Eurovision Twitter/X.com monitoring",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "twitter-api-v2": "^1.15.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": ["twitter", "xcom", "eurovision", "streaming", "api"],
+  "author": "",
+  "license": "MIT"
+}
