@@ -5,7 +5,7 @@
 [![Node.js](https://img.shields.io/badge/node.js-v16+-green.svg)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18+-blue.svg)](https://react.dev/)
 
-A real-time web application that monitors X.com (Twitter) for Eurovision-related tweets in English and German. Built with React and Node.js, featuring a Twitter-like interface with dynamic hashtag filtering and Server-Sent Events for live updates.
+A real-time web application that monitors X.com (Twitter) for (not limited to, but primary intention) Eurovision-related tweets in English and German. Built with React and Node.js, featuring a Twitter-like interface with dynamic hashtag filtering and Server-Sent Events for live updates.
 
 ## Features
 
