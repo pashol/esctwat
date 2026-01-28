@@ -7,6 +7,8 @@
 
 A real-time web application that monitors X.com (Twitter) for (not limited to, but primary intention) Eurovision-related tweets in English and German. Built with React and Node.js, featuring a Twitter-like interface with dynamic hashtag filtering and Server-Sent Events for live updates.
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/H2H21VNZU)
+
 ## Features
 
 🎤 **Real-time Streaming** - Live updates from X.com using Server-Sent Events  
