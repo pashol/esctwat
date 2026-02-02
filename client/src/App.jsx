@@ -6,11 +6,9 @@ import StreamStatus from './components/StreamStatus';
 import StreamSettings from './components/StreamSettings';
 import useTwitterStream from './hooks/useTwitterStream';
 import './styles/globals.css';
-import NotificationContainer from './components/notifications/NotificationContainer';
 
 function App() {
   const [showControlCenter, setShowControlCenter] = useState(false);
-  const [viewMode, setViewMode] = useState('feed'); // 'feed' | 'notifications'
   const [expandedSection, setExpandedSection] = useState(null); // 'status', 'settings', or 'hashtags'
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -41,22 +39,6 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
-
-  // Listen for view mode changes from Electron
-  useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.onToggleVisibility((event, mode) => {
-        setViewMode(mode);
-      });
-    }
-  }, []);
-
-  // Sync view mode with tray menu
-  useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.updateViewMode(viewMode);
-    }
-  }, [viewMode]);
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
@@ -114,19 +96,15 @@ function App() {
 
   return (
     <div className="app-shell">
-      <NotificationContainer tweets={tweets} viewMode={viewMode} />
-      
       <Header 
         tweetCount={tweets.length} 
         onClearTweets={clearTweets}
         onToggleControlCenter={() => setShowControlCenter(prev => !prev)}
         isControlCenterOpen={showControlCenter}
         isConnected={streamStatus.isConnected}
-        viewMode={viewMode}
-        onToggleView={(mode) => setViewMode(mode)}
       />
 
-      <div className={`main-content ${viewMode === 'notifications' ? 'main-content--minimal' : ''} w-full px-6 py-10 space-y-8`}>
+      <div className="main-content w-full px-6 py-10 space-y-8">
         {/* Error Display */}
         {error && (
           <div className="surface-card surface-card--flat border border-red-200/40 text-red-500 p-4">
@@ -324,18 +302,6 @@ function App() {
           )}
         </section>
 
-        {/* Notification Mode Status */}
-        {viewMode === 'notifications' && (
-          <div className="notification-status">
-            <p>Streaming tweets as notifications...</p>
-            <button 
-              onClick={() => setViewMode('feed')}
-              className="text-sm underline"
-            >
-              Switch to feed view
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
