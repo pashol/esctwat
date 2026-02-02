@@ -558,3 +558,25 @@ body {
 [data-theme="dark"] .bg-gray-100 {
   background-color: rgba(148, 163, 184, 0.14) !important;
 }
+
+.main-content--minimal {
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.notification-status {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.notification-status button {
+  display: block;
+  margin-top: 8px;
+  color: #60a5fa;
+}

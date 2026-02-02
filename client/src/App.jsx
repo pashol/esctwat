@@ -6,12 +6,12 @@ import StreamStatus from './components/StreamStatus';
 import StreamSettings from './components/StreamSettings';
 import useTwitterStream from './hooks/useTwitterStream';
 import './styles/globals.css';
+import NotificationContainer from './components/notifications/NotificationContainer';
 
 function App() {
-  const [showHashtagManager, setShowHashtagManager] = useState(false);
-  const [showStreamStatus, setShowStreamStatus] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showControlCenter, setShowControlCenter] = useState(false);
+  const [viewMode, setViewMode] = useState('feed'); // 'feed' | 'notifications'
+  const [expandedSection, setExpandedSection] = useState(null); // 'status', 'settings', or 'hashtags'
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') || 'light';
@@ -42,8 +42,21 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Listen for view mode changes from Electron
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.onToggleVisibility((event, mode) => {
+        setViewMode(mode);
+      });
+    }
+  }, []);
+
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const toggleSection = (section) => {
+    setExpandedSection(prev => prev === section ? null : section);
   };
 
   const updateSettings = async (nextSettings) => {
@@ -94,14 +107,19 @@ function App() {
 
   return (
     <div className="app-shell">
+      <NotificationContainer tweets={tweets} viewMode={viewMode} />
+      
       <Header 
         tweetCount={tweets.length} 
         onClearTweets={clearTweets}
         onToggleControlCenter={() => setShowControlCenter(prev => !prev)}
         isControlCenterOpen={showControlCenter}
+        isConnected={streamStatus.isConnected}
+        viewMode={viewMode}
+        onToggleView={() => setViewMode(prev => prev === 'feed' ? 'notifications' : 'feed')}
       />
 
-      <div className="w-full px-6 py-10 space-y-8">
+      <div className={`main-content ${viewMode === 'notifications' ? 'main-content--minimal' : ''} w-full px-6 py-10 space-y-8`}>
         {/* Error Display */}
         {error && (
           <div className="surface-card surface-card--flat border border-red-200/40 text-red-500 p-4">
@@ -126,102 +144,144 @@ function App() {
         )}
 
         {showControlCenter && (
-          <section className="control-panel space-y-6">
+          <section className="control-panel space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">Control Center</h2>
                 <p className="text-sm text-muted">Start streams, adjust filters, and tune the experience.</p>
               </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={toggleTheme}
-                  className="theme-toggle"
-                >
-                  {theme === 'light' ? (
-                    <>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414M18.364 18.364l-1.414-1.414M7.05 7.05 5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
-                      Light
-                    </>
-                  ) : (
-                    <>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" /></svg>
-                      Dark
-                    </>
-                  )}
-                </button>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowStreamStatus(!showStreamStatus)}
-                    className={`pill-button ${showStreamStatus ? 'active' : 'inactive'}`}
-                  >
-                    Status
-                  </button>
-                  <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className={`pill-button ${showSettings ? 'active' : 'inactive'}`}
-                  >
-                    Settings
-                  </button>
-                  <button
-                    onClick={() => setShowHashtagManager(!showHashtagManager)}
-                    className={`pill-button ${showHashtagManager ? 'active' : 'inactive'}`}
-                  >
-                    Hashtags ({hashtags.length})
-                  </button>
-                </div>
-              </div>
+              <button
+                onClick={toggleTheme}
+                className="theme-toggle"
+              >
+                {theme === 'light' ? (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414M18.364 18.364l-1.414-1.414M7.05 7.05 5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                    Light
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" /></svg>
+                    Dark
+                  </>
+                )}
+              </button>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {showStreamStatus && (
-                <StreamStatus
-                  status={streamStatus}
-                  connectedClients={connectedClients}
-                  onStartStream={startStream}
-                  onStopStream={stopStream}
-                  isLoading={isLoading}
-                />
-              )}
+            {/* Accordion Sections */}
+            <div className="space-y-3">
+              {/* Stream Status Accordion */}
+              <div className="overflow-hidden">
+                <button
+                  onClick={() => toggleSection('status')}
+                  className="w-full flex items-center justify-between p-4 text-left bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span className="font-medium">Stream Status</span>
+                  </div>
+                  <svg 
+                    className={`w-5 h-5 text-muted transition-transform ${expandedSection === 'status' ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {expandedSection === 'status' && (
+                  <div className="mt-2">
+                    <StreamStatus
+                      status={streamStatus}
+                      connectedClients={connectedClients}
+                      onStartStream={startStream}
+                      onStopStream={stopStream}
+                      isLoading={isLoading}
+                    />
+                  </div>
+                )}
+              </div>
 
-              {showSettings && (
-                <StreamSettings
-                  settings={settings}
-                  onUpdate={updateSettings}
-                  onReset={resetSettings}
-                  isUpdating={isUpdatingSettings}
-                />
-              )}
+              {/* Settings Accordion */}
+              <div className="overflow-hidden">
+                <button
+                  onClick={() => toggleSection('settings')}
+                  className="w-full flex items-center justify-between p-4 text-left bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="font-medium">Settings</span>
+                  </div>
+                  <svg 
+                    className={`w-5 h-5 text-muted transition-transform ${expandedSection === 'settings' ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {expandedSection === 'settings' && (
+                  <div className="mt-2">
+                    <StreamSettings
+                      settings={settings}
+                      onUpdate={updateSettings}
+                      onReset={resetSettings}
+                      isUpdating={isUpdatingSettings}
+                      hashtags={hashtags}
+                      tweetCount={tweets.length}
+                      isConnected={streamStatus.isConnected}
+                      connectedClients={connectedClients}
+                    />
+                  </div>
+                )}
+              </div>
 
-              {showHashtagManager && (
-                <HashtagManager
-                  hashtags={hashtags}
-                  onAddHashtag={handleAddHashtag}
-                  onRemoveHashtag={handleRemoveHashtag}
-                  onUpdateHashtags={handleUpdateHashtags}
-                  isLoading={isLoading}
-                />
-              )}
+              {/* Hashtags Accordion */}
+              <div className="overflow-hidden">
+                <button
+                  onClick={() => toggleSection('hashtags')}
+                  className="w-full flex items-center justify-between p-4 text-left bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                    <span className="font-medium">Hashtags</span>
+                    <span className="text-sm text-muted">({hashtags.length})</span>
+                  </div>
+                  <svg 
+                    className={`w-5 h-5 text-muted transition-transform ${expandedSection === 'hashtags' ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {expandedSection === 'hashtags' && (
+                  <div className="mt-2">
+                    <HashtagManager
+                      hashtags={hashtags}
+                      onAddHashtag={handleAddHashtag}
+                      onRemoveHashtag={handleRemoveHashtag}
+                      onUpdateHashtags={handleUpdateHashtags}
+                      isLoading={isLoading}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         )}
 
         {/* Tweet Feed */}
         <section className="space-y-6">
-          <header className="tweet-list-header">
-            <div>
-              <div className="text-sm text-muted">Live Stream</div>
-              <div className="text-xs text-muted mt-0.5">Hashtags: {hashtags.join(', ') || '—'}</div>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <span className={`inline-flex items-center gap-1 ${streamStatus.isConnected ? 'text-green-500' : ''}`}>
-                <span className={`w-2 h-2 rounded-full ${streamStatus.isConnected ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                {streamStatus.isConnected ? 'Live' : 'Offline'}
-              </span>
-              <span>•</span>
-              <span>{tweets.length} tweets</span>
-            </div>
-          </header>
-
           {tweets.length === 0 ? (
             <div className="empty-state p-12 text-center">
               <div className="text-gray-400 mb-4">
@@ -256,6 +316,19 @@ function App() {
             </div>
           )}
         </section>
+
+        {/* Notification Mode Status */}
+        {viewMode === 'notifications' && (
+          <div className="notification-status">
+            <p>Streaming tweets as notifications...</p>
+            <button 
+              onClick={() => setViewMode('feed')}
+              className="text-sm underline"
+            >
+              Switch to feed view
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
