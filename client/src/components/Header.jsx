@@ -1,6 +1,15 @@
 import React from 'react';
+import ViewToggle from './ViewToggle';
 
-const Header = ({ tweetCount, onClearTweets, onToggleControlCenter, isControlCenterOpen }) => {
+const Header = ({ 
+  tweetCount, 
+  onClearTweets, 
+  onToggleControlCenter, 
+  isControlCenterOpen, 
+  isConnected,
+  viewMode,
+  onToggleView
+}) => {
   return (
     <header className="header-bar sticky top-0 z-20">
       <div className="max-w-5xl mx-auto px-6 py-4">
@@ -16,6 +25,14 @@ const Header = ({ tweetCount, onClearTweets, onToggleControlCenter, isControlCen
           </div>
 
           <div className="flex items-center gap-4">
+            <ViewToggle viewMode={viewMode} onToggle={onToggleView} />
+            
+            <div className="flex items-center gap-2 text-xs">
+              <span className={`inline-flex items-center gap-1 ${isConnected ? 'text-green-500' : 'text-muted'}`}>
+                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                {isConnected ? 'Live' : 'Offline'}
+              </span>
+            </div>
             <button
               onClick={onToggleControlCenter}
               className={`button-ghost ${isControlCenterOpen ? 'text-primary' : ''}`}
