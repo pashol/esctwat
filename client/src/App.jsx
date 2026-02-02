@@ -116,7 +116,7 @@ function App() {
         isControlCenterOpen={showControlCenter}
         isConnected={streamStatus.isConnected}
         viewMode={viewMode}
-        onToggleView={() => setViewMode(prev => prev === 'feed' ? 'notifications' : 'feed')}
+        onToggleView={(mode) => setViewMode(mode)}
       />
 
       <div className={`main-content ${viewMode === 'notifications' ? 'main-content--minimal' : ''} w-full px-6 py-10 space-y-8`}>
