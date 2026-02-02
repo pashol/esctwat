@@ -80,6 +80,12 @@ ipcMain.on('hide-window', () => mainWindow.hide());
 ipcMain.on('show-window', () => mainWindow.show());
 ipcMain.on('quit-app', () => app.quit());
 
+ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setIgnoreMouseEvents(ignore, options);
+  }
+});
+
 app.whenReady().then(() => {
   createWindow();
   createTray();

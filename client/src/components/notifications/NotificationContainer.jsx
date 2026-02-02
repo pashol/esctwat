@@ -9,7 +9,14 @@ const NotificationContainer = ({ tweets, viewMode }) => {
     new NotificationQueue({
       maxVisible: 4,
       dismissAfter: 5000,
-      onUpdate: ({ visible }) => setNotifications(visible)
+      onUpdate: ({ visible }) => {
+        setNotifications(visible);
+        // Update mouse ignore region based on notification count
+        if (window.electronAPI && viewMode === 'notifications') {
+          const hasNotifications = visible.length > 0;
+          window.electronAPI.setIgnoreMouseEvents(!hasNotifications, { forward: true });
+        }
+      }
     })
   );
 
@@ -32,6 +39,10 @@ const NotificationContainer = ({ tweets, viewMode }) => {
   useEffect(() => {
     if (viewMode !== 'notifications') {
       queueRef.clear();
+      // Restore click-through when leaving notification mode
+      if (window.electronAPI) {
+        window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+      }
     }
   }, [viewMode, queueRef]);
 
