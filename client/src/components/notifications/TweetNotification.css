@@ -1,0 +1,127 @@
+.tweet-notification {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 360px;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 50;
+}
+
+.tweet-notification:hover {
+  transform: scale(1.02) !important;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tweet-notification__glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.tweet-notification__content {
+  padding: 16px;
+}
+
+.tweet-notification__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tweet-notification__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.tweet-notification__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tweet-notification__name {
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.tweet-notification__username,
+.tweet-notification__time {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.tweet-notification__text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.85);
+  margin: 0 0 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tweet-notification__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tweet-notification__link {
+  font-size: 12px;
+  color: #2563EB;
+  background: rgba(37, 99, 235, 0.1);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.tweet-notification__link:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .tweet-notification__glass {
+    background: rgba(30, 30, 30, 0.4);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .tweet-notification__name {
+    color: rgba(255, 255, 255, 0.95);
+  }
+  
+  .tweet-notification__username,
+  .tweet-notification__time {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  .tweet-notification__text {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
