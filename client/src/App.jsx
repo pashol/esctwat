@@ -51,6 +51,13 @@ function App() {
     }
   }, []);
 
+  // Sync view mode with tray menu
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.updateViewMode(viewMode);
+    }
+  }, [viewMode]);
+
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };

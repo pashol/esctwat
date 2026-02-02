@@ -1,8 +1,25 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let mainWindow;
 let tray;
+
+function getTrayIcon() {
+  const iconPaths = [
+    path.join(__dirname, 'assets', 'icon.png'),
+    path.join(__dirname, 'assets', 'icon.ico'),
+    path.join(__dirname, 'icon.png'),
+  ];
+  
+  for (const iconPath of iconPaths) {
+    if (fs.existsSync(iconPath)) {
+      return nativeImage.createFromPath(iconPath);
+    }
+  }
+  
+  return nativeImage.createEmpty();
+}
 
 function createWindow() {
   const { width } = require('electron').screen.getPrimaryDisplay().workAreaSize;
@@ -39,27 +56,47 @@ function createWindow() {
 }
 
 function createTray() {
-  // Placeholder icon - we'll fix this later
-  const iconPath = path.join(__dirname, 'icon.png');
-  try {
-    tray = new Tray(iconPath);
-  } catch (e) {
-    // If no icon, create empty tray
-    const { nativeImage } = require('electron');
-    tray = new Tray(nativeImage.createEmpty());
-  }
+  const icon = getTrayIcon();
+  tray = new Tray(icon.resize({ width: 16, height: 16 }));
   
-  const contextMenu = Menu.buildFromTemplate([
-    { label: 'Show/Hide', click: toggleWindow },
-    { type: 'separator' },
-    { label: 'View: Feed', click: () => sendToRenderer('view-mode', 'feed') },
-    { label: 'View: Notifications', click: () => sendToRenderer('view-mode', 'notifications') },
-    { type: 'separator' },
-    { label: 'Quit', click: () => app.quit() }
-  ]);
-  tray.setToolTip('Twitter Monitor');
-  tray.setContextMenu(contextMenu);
+  let currentViewMode = 'feed';
+  
+  const updateMenu = () => {
+    const contextMenu = Menu.buildFromTemplate([
+      { 
+        label: 'Show/Hide',
+        click: toggleWindow 
+      },
+      { type: 'separator' },
+      { 
+        label: 'View: Feed',
+        click: () => sendToRenderer('view-mode', 'feed'),
+        checked: currentViewMode === 'feed',
+        type: 'checkbox'
+      },
+      { 
+        label: 'View: Notifications',
+        click: () => sendToRenderer('view-mode', 'notifications'),
+        checked: currentViewMode === 'notifications',
+        type: 'checkbox'
+      },
+      { type: 'separator' },
+      { 
+        label: 'Quit',
+        click: () => app.quit() 
+      }
+    ]);
+    tray.setContextMenu(contextMenu);
+  };
+  
+  tray.setToolTip('Twitter Monitor - Click to toggle');
+  updateMenu();
   tray.on('click', toggleWindow);
+  
+  ipcMain.on('update-view-mode', (event, mode) => {
+    currentViewMode = mode;
+    updateMenu();
+  });
 }
 
 function toggleWindow() {
