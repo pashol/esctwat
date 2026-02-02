@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Frontend for Eurovision Twitter/X.com monitoring",
   "private": true,
+  "main": "electron/main.js",
+  "homepage": ".",
   "dependencies": {
     "autoprefixer": "^10.4.16",
     "http-proxy-middleware": "^3.0.5",
@@ -16,7 +18,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "electron": "electron .",
+    "electron:dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:pack": "npm run build && electron-builder --dir"
   },
   "eslintConfig": {
     "extends": [
@@ -35,5 +41,11 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5000",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^40.1.0",
+    "electron-builder": "^26.7.0",
+    "wait-on": "^9.0.3"
+  }
 }
